@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dmitrij Patuk</title>
+    <link rel="icon" href="data:," />
+    <script src="./app.js" type="module" defer></script>
+    <link rel="stylesheet" href="./static/style.css" />
+  </head>
+  <body>
+    <main>
+      <app-component> </app-component>
+    </main>
+    <!--############## TEMPLATES #############-->
+    <template id="home-template">
+      <div class="wrapper">
+        <h1>Home</h1>
+        <article>
+          <p>This is the Home Template</p>
+        </article>
+      </div>
+    </template>
+    <template id="about-template">
+      <div class="wrapper">
+        <h1>About</h1>
+        <article>
+          <p>This is the About Template</p>
+        </article>
+      </div>
+    </template>
+    <template id="blog-template">
+      <div class="wrapper">
+        <h1>Blog</h1>
+        <p>Willkommen auf meinem Blog.</p>
+        <div class="blog-entries-container">
+          <ul>
+            <li>
+              <blog-entry></blog-entry>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </template>
+    <template id="blog-entry-template">
+      <article class="blog-entry">
+        <img class="thumb" src="#" alt="blog-image" />
+        <div class="info">
+          <h3 class="title">Blog Title</h3>
+
+          <ul class="tags">
+            <li>Tag 1</li>
+          </ul>
+
+          <p class="excerpt">Short text…</p>
+
+          <a class="details" href="#">Details</a>
+        </div>
+      </article>
+    </template>
+  </body>
+</html>
