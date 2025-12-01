@@ -84,78 +84,96 @@ p {
   gap: 1.4rem;
 }
 
-/* ------------------------------------------------------
-   BLOG ENTRY CARD
------------------------------------------------------- */
-
-blog-entry article {
-  background: var(--white);
+/* ----------------------------------------
+   BLOG ENTRY CARD — LEFT IMAGE, RIGHT TEXT
+----------------------------------------- */
+.blog-entry {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 1.2rem;
   padding: 1.2rem 1.4rem;
+  background: var(--white);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
   border: 1px solid #e5e7eb;
   transition: transform var(--transition), box-shadow var(--transition);
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
+  align-items: start;
 }
 
-blog-entry article:hover {
-  transform: translateY(-4px);
+.blog-entry:hover {
+  transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
 }
 
-blog-entry img {
+/* Thumbnail */
+.blog-entry .thumb {
   width: 100%;
-  height: auto;
-  aspect-ratio: 16 / 9;
+  height: 140px;
   object-fit: cover;
   border-radius: var(--radius);
-  margin-top: 0.4rem;
   background: #dbe1e8;
 }
 
-blog-entry a {
-  margin-top: auto;
-  text-decoration: none;
-  font-weight: 600;
-  color: var(--windsurfing);
-  transition: color var(--transition);
+/* Content */
+.blog-entry .info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-blog-entry a:hover {
-  color: var(--marina);
+/* Title */
+.blog-entry .title {
+  margin: 0;
+  font-size: var(--h3);
+  color: var(--charcoal);
 }
 
 /* Tags */
-blog-entry ul {
+.blog-entry .tags {
   list-style: none;
   display: flex;
   gap: 0.5rem;
   padding: 0;
-  margin: 0.4rem 0 0.8rem;
+  margin: 0.2rem 0;
 }
 
-blog-entry ul li {
+.blog-entry .tags li {
   background: var(--windsurfing);
   color: white;
-  padding: 0.2rem 0.6rem;
+  padding: 0.2rem 0.55rem;
   border-radius: var(--radius);
   font-size: 0.75rem;
   font-weight: 500;
 }
 
-/* ------------------------------------------------------
-   RESPONSIVE
------------------------------------------------------- */
+/* Excerpt */
+.blog-entry .excerpt {
+  margin: 0.4rem 0;
+  color: var(--onyx);
+}
 
+/* Details link */
+.blog-entry .details {
+  margin-top: auto;
+  text-decoration: none;
+  font-weight: 600;
+  color: var(--windsurfing);
+}
+
+.blog-entry .details:hover {
+  color: var(--marina);
+}
+
+/* ----------------------------------------
+   RESPONSIVE — IMAGE ABOVE TEXT ON MOBILE
+----------------------------------------- */
 @media (max-width: 700px) {
-  :root {
-    --h1: 2.1rem;
-    --h3: 1.2rem;
+  .blog-entry {
+    grid-template-columns: 1fr;
   }
 
-  .wrapper {
-    padding: 1rem;
+  .blog-entry .thumb {
+    width: 100%;
+    height: 200px;
   }
 }
