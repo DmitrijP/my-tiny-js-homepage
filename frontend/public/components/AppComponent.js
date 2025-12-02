@@ -1,6 +1,4 @@
-export { AppComponent };
-
-class AppComponent extends HTMLElement {
+export class AppComponent extends HTMLElement {
   constructor() {
     super();
   }

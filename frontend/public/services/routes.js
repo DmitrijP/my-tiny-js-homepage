@@ -1,7 +1,7 @@
-import { HomePage } from "../components/HomePage.js";
-import { AboutPage } from "../components/AboutPage.js";
-import { BlogPage } from "../components/BlogPage.js";
-import { BlogEntry } from "../components/BlogEntiry.js";
+import { HomePage } from "../components/home-page/home-page.js";
+import { AboutPage } from "../components/about-page/about-page.js";
+import { BlogPage } from "../components/blog-page/blog-page.js";
+import { AppComponent } from "../components/AppComponent.js";
 
 export const Routes = [
   {

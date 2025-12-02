@@ -922,3 +922,236 @@ export const Routes = [
 
 Am Ende starten wir den Server mit `node ./src/server.js` neu und prüfen ob noch alles so funktioniert wie bisher. `HomePage`, `AboutPage` und `/api/blog` sollten weiterhin aufrufbar sein. 
 Zusätzlich sollten wir unter `/blog` unsere zwei Blogeinträge als Liste gerendert bekommen.
+
+
+## Teil 7 Refactoring
+
+Es ist an der Zeit unseren Code zu refactoren da es jetzt unübersichtlich wird. Wir fangen damit an das wir uns überlegen wie unsere neue Struktur aussehen soll.
+
+Dies war unsere Verzeichnisstruktur:
+```bash
+|backend
+|frontend
+|-->|public
+|-->|-->|components
+|-->|-->|services
+|-->|-->|static
+```
+
+Ich möchte diese folgender weise erweitern:
+```bash
+|backend
+|frontend
+|-->|public
+|-->|-->|components
+|-->|-->|-->|home-page
+|-->|-->|-->|-->|home-page.js
+|-->|-->|-->|-->|home-page.css
+|-->|-->|-->|-->|home-page.html
+|-->|-->|-->|home-page
+|-->|-->|-->|-->|home-page.js
+|-->|-->|-->|-->|home-page.css
+|-->|-->|-->|-->|home-page.html
+|-->|-->|-->|-->|home-page-item
+|-->|-->|-->|-->|-->|home-page-item.js
+|-->|-->|-->|-->|-->|home-page-item.css
+|-->|-->|-->|-->|-->|home-page-item.html
+|-->|-->|services
+|-->|-->|static
+```
+Dadurch können wir die Templates und Styles pro Seite gruppieren und schaffen so mehr Übersicht.
+
+### HomePage refactoring
+
+Erstmal erstellen wir die Struktur, in dem wir die drei Dateien anlegen:
+- `/frontend/public/components/home-page/home-page.js`
+- `/frontend/public/components/home-page/home-page.html`
+- `/frontend/public/components/home-page/home-page.css`
+
+Wir kopieren das Template in die .html Datei, die `Template` Tags können wir weg lassen:
+```html
+<div class="wrapper">
+  <h1>Home</h1>
+  <article>
+    <p>This is the Home Template</p>
+  </article>
+</div>
+```
+
+Gleiches machen wir mit der css Datei:
+
+```css
+.wrapper {
+  max-width: 1200px;
+  padding: 1rem;
+  margin: 0 auto;
+}
+
+h1 {
+  margin: 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+```
+
+und die JS Datei.
+Wobei wir bei der HomePage.js noch einiges anpassen müssen.
+Wir müssen erstmal ein `ShadowDom` erstellen in dem unser Template und CSS gekapselt wird so das externe Elemente kein Einfluss darauf haben. Dies geschieht im `constructor()` danach rufen wir `load()` auf.
+
+Load lädt die zwei Dateien (`css/html`) vom Server und extrahiert den Text in eigene Variablen.
+Danach erstellen wir ein `Template` und weisen diesem das CSS sowie HTML zu.
+```js
+export class HomePage extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: "open" });
+    this.load();
+  }
+
+  async load() {
+    const html = await fetch(new URL("./home-page.html", import.meta.url))
+      .then(r => r.text());
+
+    const css = await fetch(new URL("./home-page.css", import.meta.url))
+      .then(r => r.text());
+
+    const template = document.createElement("template");
+    template.innerHTML = `<style>${css}</style>${html}`;
+
+    this.shadowRoot.appendChild(template.content.cloneNode(true));
+  }
+
+  connectedCallback() {
+    console.log("HomePage connected to DOM");
+  }
+}
+
+customElements.define("home-page", HomePage);
+```
+
+Gleiches können wir für die anderen Dateien tun. Wir ignorieren diese aber erstmal da wir unseren Server anpassen müssen.
+
+### Server Catch All
+Wenn wir den Server neu starten und die HomePage laden, wird diese nicht dargestellt. Was wir stattdessen sehen ist die gesammte SPA im ShadowDOM.
+Dies passiert weil unsere Catch All Route den Download von Dateien nicht zulässt, da sie immer auf `/index.html` umleitet.
+
+Wir beheben dies mit dieser Catch All Route. 
+```js
+//*all means that the route will be assigned to a parameter named all
+app.all("*all", (req, res) => {
+  res.sendFile(path.join(frontendPath, "index.html"));
+});
+```
+So sollte die `server.js` jetzt aussehen:
+```js
+import express from "express";
+import path from "path";
+import { fileURLToPath } from "url";
+import { blogEntryMiddleware } from "./api/blogEntries.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+const PORT = 3000;
+
+const frontendPath = path.join(__dirname, "../../frontend/public");
+
+app.use(express.json());
+
+app.use(express.static(frontendPath));
+
+app.use("/api/blog", blogEntryMiddleware);
+
+app.all("*all", (req, res) => {
+  res.sendFile(path.join(frontendPath, "index.html"));
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
+
+```
+Startet den Server neu und probiert es aus die HomePage sollte noch immer funktionieren.
+
+### BaseComponent
+Wir könnten jetzt den Programmcode der HomePage in alle anderen Componenten kopieren, einfacher ist es aber den Code in eine eigene Superklasse zu exportieren.
+Eine neue Klasse die für uns die .css und .html Dateien automatisch lädt und in den DOM einbindet.
+
+Wir erwarten über den Constructor die URL der Child Klasse und speichern die Intern. Dann laden wir anhand dem Constructor Namen die zwei Template Dateien mit der `load()` Methode.
+
+Diese benötigt eine `toKebabCase` Methode um unseren Klassennamen in den entsprechenden Dateinamen umzuwandeln.
+
+Danach fahren wir wie bei der HomePage vor und laden die zwei Dateien herunter. Weisen die dem ShadowRoot zu und rufen eine `onReady()` Methode auf.
+Diese Methode existiert nicht, wenn sie aber im Child existiert können wir dort das Rendern der Komponente fortführen.
+```js
+export class BaseComponent extends HTMLElement {
+  constructor(childUrl) {
+    super();
+    this.attachShadow({ mode: "open" });
+
+    const url = new URL("./", childUrl);
+    this.log(url);
+    this._componentDir = url;
+
+    const name = this.constructor.name;
+    this.load(name);
+  }
+
+  async load(name) {
+    const baseURL = import.meta.url.replace(/[^\/]+$/, "");
+    const kebabName = this.toKebabCase(name);
+    const htmlURL = new URL(`./${kebabName}.html`, this._componentDir);
+    this.log(htmlURL);
+    const cssURL = new URL(`./${kebabName}.css`, this._componentDir);
+    this.log(cssURL);
+    const [html, css] = await Promise.all([
+      fetch(htmlURL).then((r) => r.text()),
+      fetch(cssURL).then((r) => r.text()),
+    ]);
+
+    this.log("template files fetched");
+    const styleEl = document.createElement("style");
+    styleEl.textContent = css;
+    this.shadowRoot.appendChild(styleEl);
+
+    const template = document.createElement("template");
+    template.innerHTML = html;
+    this.shadowRoot.appendChild(template.content.cloneNode(true));
+
+    this.onReady?.();
+  }
+
+  log(message, ...args) {
+    const name = this.constructor.name || "BaseComponent";
+    const time = new Date().toLocaleTimeString();
+    console.log(`[${time} - ${name}] ${message}`, ...args);
+  }
+
+  toKebabCase(str) {
+    return str.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
+  }
+}
+```
+
+Diese Klasse müssen wir jetzt in unserer `home-page.js` erben:
+
+```js
+import { BaseComponent } from "../BaseComponent.js";
+
+export class HomePage extends BaseComponent {
+  constructor() {
+    super(import.meta.url);
+  }
+  onReady() {
+    this.log("OnReady called");
+  }
+}
+
+customElements.define("home-page", HomePage);
+```
+
+Wie man sieht ist der code extrem geschrumpft. Verfahrt analog mit der AboutPage.
+
+### Blog
+Beim Blog wird es etwas komplexer.

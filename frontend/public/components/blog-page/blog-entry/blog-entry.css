@@ -1,0 +1,26 @@
+.blog-entry {
+  display: flex;
+  gap: 1rem;
+  border-bottom: 1px solid #ddd;
+  padding: 1rem 0;
+}
+
+.thumb {
+  width: 120px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.content {
+  flex: 1;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.body {
+  color: #555;
+}
