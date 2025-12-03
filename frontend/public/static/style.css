@@ -47,7 +47,7 @@ body {
 
 /* Layout Container */
 .wrapper {
-  max-width: 1000px;
+  max-width: 1200px;
   padding: 1.5rem;
   margin: 0 auto;
 }
@@ -70,4 +70,41 @@ h3 {
 
 p {
   margin: 0.4rem 0 1rem;
+}
+
+/* Terminal Navigation */
+.terminal-navbar {
+  border-radius: var(--corners);
+  padding: 12px 24px;
+  font-family: "Courier New", monospace;
+  margin-bottom: 2rem;
+}
+
+.terminal-navbar ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+
+.terminal-navbar li a {
+  color: var(--windsurfing);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 18px;
+  position: relative;
+  padding-bottom: 2px;
+  transition: color var(--transition);
+}
+
+.terminal-navbar li a:hover,
+.terminal-navbar li a:focus {
+  color: var(--charcoal);
+}
+
+.terminal-navbar li a:focus {
+  outline: 2px solid var(--accent-glow);
+  outline-offset: 2px;
 }
