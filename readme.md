@@ -42,6 +42,8 @@ Ziel davon ist es zu verstehen wie Angular, Vue, React... Frameworks funktionier
       - [BlogPage](#blogpage)
     - [routes.js](#routesjs)
   - [Teil 8 Navigation](#teil-8-navigation)
+      - [History](#history)
+  - [Teil 9](#teil-9)
 
 
 ## Teil 1 Einstieg
@@ -1410,6 +1412,7 @@ export const Routes = [
 Danach müssen wir die nicht mehr benötigten Daten und Einträge in der HTML Datei löschen wenn nicht bereits geschehen.
 Somit haben wir unserer Anwendung refactored und für die nachfolgenden Features bereit gemacht.
 
+Die Anwendung sollte weiterhin wie bisher funktionieren.
 
 ## Teil 8 Navigation
 
@@ -1486,3 +1489,72 @@ document.querySelectorAll("a.navlink").forEach((a) => {
   });
 });
 ```
+#### History
+Damit unserere App wie erwartet im Browser funktioniert müssen wir dafür sorgen das die History des Browsers beschrieben wird das machen wir mit folgendem Schnipsel am Anfang der `goTo()` Methode.
+```js
+if (addToHistory) {
+  history.pushState(null, "", route);
+}
+```
+Damit pushen wir die aktuelle Route in die Browser History. Somit funktioniert jetzt der Refresh Button wie erwartet und die Navigationsleiste wird richtig beschrieben.
+
+Der Router sollte jetzt so aussehen
+```js
+import { Routes } from "./routes.js";
+
+export const Router = {
+  init: () => {
+    //when a navlink is clicked
+    document.querySelectorAll("a.navlink").forEach((a) => {
+      a.addEventListener("click", (event) => {
+        event.preventDefault();
+        const href = a.getAttribute("href");
+        Router.goTo(href);
+      });
+    });
+
+    //when navigation in navbar
+    window.addEventListener("popstate", () => {
+      console.log("ROUTER -> OnPopstate: " + location.pathname);
+      Router.goTo(location.pathname);
+    });
+
+    //initial
+    Router.goTo(location.pathname);
+  },
+
+  // api/route/whatever?id=1&x=2
+  goTo: (route, addToHistory = true) => {
+    if (addToHistory) {
+      history.pushState(null, "", route);
+    }
+
+    var path = "";
+    var query = "";
+    if (route.includes("?")) {
+      var parts = route.split("?");
+      path = parts[0];
+      query = parts[1];
+    } else {
+      path = route;
+    }
+    var page = null;
+    for (let r of Routes) {
+      if (typeof r.path === "string" && r.path === path) {
+        console.log("ROUTER -> goTo: " + path);
+        page = new r.component();
+        break;
+      }
+    }
+
+    if (page) {
+      document.querySelector("app-component").innerHTML = "";
+      document.querySelector("app-component").appendChild(page);
+    }
+  },
+};
+```
+
+Testet ob die Navigation weiterhin richtig funktioniert.
+
+## Teil 9

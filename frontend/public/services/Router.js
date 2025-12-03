@@ -22,7 +22,10 @@ export const Router = {
   },
 
   // api/route/whatever?id=1&x=2
-  goTo: (route) => {
+  goTo: (route, addToHistory = true) => {
+    if (addToHistory) {
+      history.pushState(null, "", route);
+    }
     var path = "";
     var query = "";
     if (route.includes("?")) {
