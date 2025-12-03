@@ -1225,6 +1225,10 @@ Zuerst das HTML
 ```
 Dann das CSS
 ```css
+:root {
+  --marina: #5a91c7;
+}
+
 .blog-entry {
   display: flex;
   gap: 1rem;
@@ -1233,8 +1237,8 @@ Dann das CSS
 }
 
 .thumb {
-  width: 120px;
-  height: 80px;
+  width: 220px;
+  height: 220px;
   object-fit: cover;
   border-radius: 8px;
 }
@@ -1250,6 +1254,22 @@ Dann das CSS
 
 .body {
   color: #555;
+}
+
+ul {
+  display: flex;
+  gap: 8px;
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+ul li {
+  background: #eee;
+  padding: 5px 10px;
+  border-radius: 8px;
+  display: inline;
+  color: var(--marina);
 }
 ```
 Jetzt muss nur noch die Klasse angepasst werden. Wir verwenden erneut die BaseComponent als Superklasse. `set data(dto)` setzt in diesem Fall nur die Daten. Das Rendering wird in `onReady()`gemacht.
@@ -1321,6 +1341,12 @@ h1 {
   margin: 0;
   font-size: 2.5rem;
   font-weight: 700;
+}
+
+ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
 }
 ```
 
