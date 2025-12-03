@@ -38,6 +38,9 @@ Ziel davon ist es zu verstehen wie Angular, Vue, React... Frameworks funktionier
     - [Server Catch All](#server-catch-all)
     - [BaseComponent](#basecomponent)
     - [Blog](#blog)
+      - [BlogEntry](#blogentry)
+      - [BlogPage](#blogpage)
+    - [routes.js](#routesjs)
 
 
 ## Teil 1 Einstieg
@@ -1193,3 +1196,189 @@ Wie man sieht ist der code extrem geschrumpft. Verfahrt analog mit der AboutPage
 
 ### Blog
 Beim Blog wird es etwas komplexer.
+Wir erstellen erstmal die Dateien:
+
+- `/frontend/public/components/blog-page/blog-page.js`
+- `/frontend/public/components/blog-page/blog-page.html`
+- `/frontend/public/components/blog-page/blog-page.css`
+- `/frontend/public/components/blog-page/blog-entry/blog-entry.js`
+- `/frontend/public/components/blog-page/blog-entry/blog-entry.html`
+- `/frontend/public/components/blog-page/blog-entry/blog-entry.css`
+
+#### BlogEntry
+
+Als erstes beginnen wir mit der `BlogEntry` wir kopieren das HTML und CSS in die entsprechenden Dateien.
+
+Zuerst das HTML
+```html
+<article class="blog-entry">
+  <img class="thumb" src="#" alt="blog-image" />
+  <div class="info">
+    <h3 class="title">Blog Title</h3>
+    <ul class="tags">
+      <li>Tag 1</li>
+    </ul>
+    <p class="content">Short text…</p>
+    <a class="details" href="#">Details</a>
+  </div>
+</article>
+```
+Dann das CSS
+```css
+.blog-entry {
+  display: flex;
+  gap: 1rem;
+  border-bottom: 1px solid #ddd;
+  padding: 1rem 0;
+}
+
+.thumb {
+  width: 120px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.content {
+  flex: 1;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.body {
+  color: #555;
+}
+```
+Jetzt muss nur noch die Klasse angepasst werden. Wir verwenden erneut die BaseComponent als Superklasse. `set data(dto)` setzt in diesem Fall nur die Daten. Das Rendering wird in `onReady()`gemacht.
+Hier selectieren wir die entsprechenden Elemente im shadow und setzen diese mit den Werten aus dem `_data` Objekt.
+
+```js
+import { BaseComponent } from "../../BaseComponent.js";
+
+export class BlogEntry extends BaseComponent {
+  constructor() {
+    super(import.meta.url);
+    this._data = null;
+  }
+
+  set data(dto) {
+    this.log("BlogEntry: set data");
+    this._data = dto;
+  }
+
+  onReady() {
+    this.log("BlogEntry: render");
+    if (!this._data) return;
+    this.shadowRoot.querySelector("h3.title").textContent = this._data.title;
+    this.shadowRoot.querySelector("p.content").textContent = this._data.body;
+    this.shadowRoot.querySelector("img").src = this._data.thumbnail;
+    this.shadowRoot.querySelector("a").href = `/blog/${this._data.id}`;
+
+    for (let tag of this._data.tags) {
+      const li = document.createElement("li");
+      li.textContent = tag;
+      this.shadowRoot.querySelector("ul").appendChild(li);
+    }
+
+    this.shadowRoot.querySelector("h3").textContent = "";
+    this.shadowRoot.querySelector("h3").textContent = this._data.title;
+  }
+}
+
+customElements.define("blog-entry", BlogEntry);
+```
+Damit ist die BlogEntry fertig, nun folgt noch die Parent Seite.
+
+#### BlogPage
+Bei der BlogPage gehen wir analog vor.
+Erst das HTML aus der `index.html` kopieren.
+```html
+<div class="wrapper">
+  <h1>Blog</h1>
+  <p>Willkommen auf meinem Blog.</p>
+  <div class="blog-entries-container">
+    <ul>
+      <li>
+        <blog-entry></blog-entry>
+      </li>
+    </ul>
+  </div>
+</div>
+```
+
+Dann das CSS.
+```css
+.wrapper {
+  max-width: 1200px;
+  padding: 1rem;
+  margin: 0 auto;
+}
+
+h1 {
+  margin: 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+```
+
+Zuletzt noch die JS hier müssen wir die `blog-entry.js` importieren.
+In `onReady()` laden wir die BlogEinträge und generieren die einzelnen Listeneinträge von `blog-entry` Elementen, die wir in die Liste legen.
+```js
+import { BlogClient } from "../../services/BlogClient.js";
+import { BaseComponent } from "../BaseComponent.js";
+import { BlogEntry } from "./blog-entry/blog-entry.js";
+
+export class BlogPage extends BaseComponent {
+  constructor() {
+    super(import.meta.url);
+  }
+
+  async onReady() {
+    this.log("OnReady called");
+    let blog = await BlogClient.getBlog();
+    let container = this.shadowRoot.querySelector(".blog-entries-container ul");
+    container.textContent = "";
+    blog.forEach((entry) => {
+      this.log(`BLOGPAGE: Entry`);
+      const item = document.createElement("blog-entry");
+      item.data = entry;
+      const li = document.createElement("li");
+      li.appendChild(item);
+      container.appendChild(li);
+    });
+  }
+}
+
+customElements.define("blog-page", BlogPage);
+```
+
+### routes.js
+Jetzt muss nur noch die `routes.js` angepasst werden.
+
+```js
+import { HomePage } from "../components/home-page/home-page.js";
+import { AboutPage } from "../components/about-page/about-page.js";
+import { BlogPage } from "../components/blog-page/blog-page.js";
+import { AppComponent } from "../components/AppComponent.js";
+
+export const Routes = [
+  {
+    path: "/",
+    component: HomePage,
+  },
+  {
+    path: "/about",
+    component: AboutPage,
+  },
+  {
+    path: "/blog",
+    component: BlogPage,
+  },
+];
+```
+
+Danach müssen wir die nicht mehr benötigten Daten und Einträge in der HTML Datei löschen wenn nicht bereits geschehen.
+Somit haben wir unserer Anwendung refactored und für die nachfolgenden Features bereit gemacht.
