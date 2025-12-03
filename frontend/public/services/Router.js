@@ -2,11 +2,22 @@ import { Routes } from "./routes.js";
 
 export const Router = {
   init: () => {
+    //when a navlink is clicked
+    document.querySelectorAll("a.navlink").forEach((a) => {
+      a.addEventListener("click", (event) => {
+        event.preventDefault();
+        const href = a.getAttribute("href");
+        Router.goTo(href);
+      });
+    });
+
+    //when navigation in navbar
     window.addEventListener("popstate", () => {
       console.log("ROUTER -> OnPopstate: " + location.pathname);
       Router.goTo(location.pathname);
     });
 
+    //initial
     Router.goTo(location.pathname);
   },
 

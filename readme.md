@@ -41,6 +41,7 @@ Ziel davon ist es zu verstehen wie Angular, Vue, React... Frameworks funktionier
       - [BlogEntry](#blogentry)
       - [BlogPage](#blogpage)
     - [routes.js](#routesjs)
+  - [Teil 8 Navigation](#teil-8-navigation)
 
 
 ## Teil 1 Einstieg
@@ -1408,3 +1409,80 @@ export const Routes = [
 
 Danach müssen wir die nicht mehr benötigten Daten und Einträge in der HTML Datei löschen wenn nicht bereits geschehen.
 Somit haben wir unserer Anwendung refactored und für die nachfolgenden Features bereit gemacht.
+
+
+## Teil 8 Navigation
+
+In diesem Teil implementieren wir eine einfache Navigationsleiste.
+Als erstes setzen wir den Header in unsere `index.html` ein.
+```html
+<header>
+  <div class="wrapper">
+    <nav class="terminal-navbar">
+      <ul>
+        <li>
+          <a href="/" class="navlink"
+            >&gt; Home<span class="cursor">|</span></a
+          >
+        </li>
+        <li><a href="/blog" class="navlink">&gt; Blog</a></li>
+        <li><a href="/about" class="navlink">&gt; About</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+```
+
+Und das CSS in unsere `index.css`.
+```css
+/* Terminal Navigation */
+.terminal-navbar {
+  border-radius: var(--corners);
+  background-color: var(--dark-terminal);
+  padding: 12px 24px;
+  font-family: "Courier New", monospace;
+  box-shadow: inset 0 -2px 4px rgba(0, 209, 178, 0.4);
+  margin-bottom: 2rem;
+}
+
+.terminal-navbar ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: 28px;
+  flex-wrap: wrap;
+}
+
+.terminal-navbar li a {
+  color: var(--windsurfing);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 18px;
+  position: relative;
+  padding-bottom: 2px;
+  transition: color var(--transition);
+}
+
+.terminal-navbar li a:hover,
+.terminal-navbar li a:focus {
+  color: #fff;
+}
+
+.terminal-navbar li a:focus {
+  outline: 2px solid var(--accent-glow);
+  outline-offset: 2px;
+}
+```
+
+Als letztes müssen wir nur noch unseren `Router.js` erweitern. Dieser Code Schnipsel kommt an den Anfang der `init()` Methode.
+Damit fügen wir an jeden `navlink` ein `clickListener` der die Default Navigation unterdrück und stattdessen unseren Router verwendet.
+```js
+document.querySelectorAll("a.navlink").forEach((a) => {
+  a.addEventListener("click", (event) => {
+    event.preventDefault();
+    const href = a.getAttribute("href");
+    Router.goTo(href);
+  });
+});
+```
