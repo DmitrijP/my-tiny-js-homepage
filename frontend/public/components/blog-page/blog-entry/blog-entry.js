@@ -18,9 +18,10 @@ export class BlogEntry extends BaseComponent {
     this.shadowRoot.querySelector("p.content").textContent = this._data.body;
     this.shadowRoot.querySelector("img").src = this._data.thumbnail;
     this.shadowRoot.querySelector("a").href = `/blog/${this._data.id}`;
-
+    this.shadowRoot.querySelector("ul").textContent = "";
     for (let tag of this._data.tags) {
       const li = document.createElement("li");
+      li.textContent = "";
       li.textContent = tag;
       this.shadowRoot.querySelector("ul").appendChild(li);
     }
