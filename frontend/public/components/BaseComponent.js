@@ -13,6 +13,7 @@ export class BaseComponent extends HTMLElement {
 
   async load(name) {
     const baseURL = import.meta.url.replace(/[^\/]+$/, "");
+    this.log("B: " + baseURL);
     const kebabName = this.toKebabCase(name);
     const htmlURL = new URL(`./${kebabName}.html`, this._componentDir);
     this.log(htmlURL);
@@ -27,9 +28,9 @@ export class BaseComponent extends HTMLElement {
     styleEl.textContent = css;
     this.shadowRoot.appendChild(styleEl);
 
-    const template = document.createElement("template");
-    template.innerHTML = html;
-    this.shadowRoot.appendChild(template.content.cloneNode(true));
+    this._template = document.createElement("template");
+    this._template.innerHTML = html;
+    this.shadowRoot.appendChild(this._template.content.cloneNode(true));
 
     this.onReady?.();
   }

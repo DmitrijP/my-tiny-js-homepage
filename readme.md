@@ -43,7 +43,14 @@ Ziel davon ist es zu verstehen wie Angular, Vue, React... Frameworks funktionier
     - [routes.js](#routesjs)
   - [Teil 8 Navigation](#teil-8-navigation)
       - [History](#history)
-  - [Teil 9](#teil-9)
+  - [Teil 9 Kontaktformular und DataBinding](#teil-9-kontaktformular-und-databinding)
+    - [Definition der Dateien](#definition-der-dateien)
+    - [Contact Page](#contact-page)
+    - [Der StateController für unsere Variablen](#der-statecontroller-für-unsere-variablen)
+    - [Die ContactForm](#die-contactform)
+    - [Navigation](#navigation)
+  - [Teil 10 Client Side Validierung](#teil-10-client-side-validierung)
+  - [Teil 11 Persistieren der Formulardaten](#teil-11-persistieren-der-formulardaten)
 
 
 ## Teil 1 Einstieg
@@ -461,8 +468,8 @@ goTo: (route) => {
     }
 
     if (page) {
-      document.querySelector("app-component").innerHTML = "";
-      document.querySelector("app-component").appendChild(page);
+      const container = document.querySelector("app-component");
+      container.replaceChildren(page);
     }
 },
 ```
@@ -864,7 +871,7 @@ export class BlogEntry extends HTMLElement {
   async render() {
     console.log("BlogEntry: render");
     if (!this._data) return;
-    this.innerHTML = "";
+    this.textContent = "";
 
     const template = document.getElementById("blog-entry-template");
     const node = template.content.cloneNode(true);
@@ -1548,8 +1555,8 @@ export const Router = {
     }
 
     if (page) {
-      document.querySelector("app-component").innerHTML = "";
-      document.querySelector("app-component").appendChild(page);
+      const container = document.querySelector("app-component");
+      container.replaceChildren(page);
     }
   },
 };
@@ -1557,4 +1564,488 @@ export const Router = {
 
 Testet ob die Navigation weiterhin richtig funktioniert.
 
-## Teil 9
+## Teil 9 Kontaktformular und DataBinding
+
+In Teil 9 werden wir ein Kontaktformular implementieren. Dabei schauen wir uns die Implementierung sogenannte DataBindings an.
+
+Diese erlauben es uns die Daten aus unserem Programmcode an das Benutzerinterface zu binden und eine direktionale oder bidirektionale Synchronisierung zu ermöglichen. Das heißt, wenn wir die Daten unses Datenmodells verändern dann ändert sich automatisch die Anzeige dieser Daten im Benutzerinterface. 
+Dies ist auch in die entgegengesetzte Richtung möglich.
+Wenn wir die Daten innerhalbt unseres Benutzzerinterfaces ändern dann ändern sich auch die Daten des dahinter liegenden Datenmodells.
+
+Dies werden wir anhand eines Kontaktformulars verdeutlichen.
+
+### Definition der Dateien
+
+Wir legen erstmal wieder die Dateien an.
+Wir werden ein Formular haben  
+- `public/components/contact-page/contact-form.js`  
+- `public/components/contact-page/contact-form.css`  
+- `public/components/contact-page/contact-form.html`  
+und dieses Formular wird in der Contact Page eingebunden.  
+- `public/components/contact-page/contact-page.js` 
+- `public/components/contact-page/contact-page.css`
+- `public/components/contact-page/contact-page.html`
+
+
+### Contact Page
+Dazu erstellen wir in der `/contact-page.html` folgendes Template das das Formular hält.
+
+```html
+<div class="wrapper">
+  <h1>Contact</h1>
+  <article>
+    <p>This is the Contact Template</p>
+    <contact-form></contact-form>
+  </article>
+</div>
+```
+
+Wie gewohnt die dazu gehörige `contact-page.js`, die das Formular einbindet.
+```js
+import { ContactForm } from "./contact-form.js";
+import { BaseComponent } from "../BaseComponent.js";
+
+export class ContactPage extends BaseComponent {
+  static fileUrl = import.meta.url;
+  constructor() {
+    super(ContactPage.fileUrl);
+  }
+  onReady() {
+    this.log("OnReady called");
+  }
+}
+
+customElements.define("contact-page", ContactPage);
+```
+
+Sowie das CSS für die Seite.
+```css
+.wrapper {
+  max-width: 1200px;
+  padding: 1.5rem;
+  margin: 0 auto;
+}
+
+h1 {
+  font-size: var(--h1);
+  font-weight: 800;
+  margin: 0 0 1rem;
+  color: var(--charcoal);
+}
+```
+
+### Der StateController für unsere Variablen
+Unser Ziel ist es einen Controller zu schreiben der ähnlich wie React funktioniert und es uns erlaubt den Zustand einer Variable zu verwalten.
+
+Als erstes erstellen wir den Logger: `public/services/logger.js` um bessere Logs darstellen zu können. Wir halten es einfach, indem wir den Namen der Klasse, den Zeitpunkt, die Message sowie alle anderen Argumente an die default log Funktion weiter geben.
+
+```js
+export function log(message, ...args) {
+  const name = this.constructor.name || "BaseComponent";
+  const time = new Date().toLocaleTimeString();
+  console.log(`[${time} - ${name}] ${message}`, ...args);
+}
+```
+Danach erstellen wir die Datei: `public/services/hook.js`. 
+Diese Datei bindet den Log ein und exportiert eine Funktion. Diese Funktion erwartet einen unserer Components und eine Funktion zum Rendern des Components als Parameter.
+
+```js
+import { log } from "./Logger.js";
+
+export function createStateController(component, renderFn) {
+
+}
+```
+
+In dieser Funktion wird ein Array definiert, in dem die Zustände der einzelnen Variablen gehalten werden und den aktuellen Index der uns ermöglich die Zustände der Variablen nacheinander abzuarbeiten.
+Dann binden wir unseren Logger an die Component Klasse, damit das `this` des Loggers auf die Component zeigt.
+
+```js
+const stateStore = [];
+let hookIndex = 0;
+const boundLog = log.bind(component);
+```
+
+Danach erstellen wir ein Objekt mit dem Namen Controller der zwei Funktionen anbietet. `useState(initialValue)` und `update()`. Update setzt den `hookIndex` auf 0 zurück damit die Render Funktion des Components die Aufrufe an `setState()` erneut ausführen kann.
+
+```js
+const controller = {
+    useState(initialValue) {
+        ...
+    },
+
+    update() {
+      hookIndex = 0;
+      renderFn();
+    },
+  };
+```
+
+`useState()` speichert den aktuellen Index intern in einer closure und prüft ob der aktuelle Index im Array belegt ist. Wenn dieser noch undefined ist dann wird der initiale Wert in das Array geschrieben.
+Als nächstes definieren wir ein Setter der das Array an der aktuellen Position aktualisiert sowie die eigene Update Funktion aufruft. Dies führt dazu das die Component neu gerendert wird.
+
+Am Ende inkrementieren wir den Index um für den nächsten Aufruf bereit zu sein und geben den aktuellen Wert sowie den Getter zurück, damit dieser im Component verwendet werden kann.
+```js
+useState(initialValue){
+  const index = hookIndex;
+
+  if (stateStore[index] === undefined) {
+    log("setting initial value to: " + initialValue);
+    stateStore[index] = initialValue;
+  }
+
+  const setState = (newValue) => {
+    stateStore[index] = newValue;
+    boundLog("updating value to: " + newValue);
+    controller.update();
+  };
+
+  hookIndex++;
+  return [stateStore[index], setState];
+}
+```
+
+Zuletzt wird dann die Controller Variable zurück gegeben somit sieht die gesamte funktion so aus:
+
+```js
+import { log } from "./Logger.js";
+
+export function createStateController(component, renderFn) {
+  const stateStore = [];
+  let hookIndex = 0;
+
+  const boundLog = log.bind(component);
+  const controller = {
+    useState(initialValue) {
+      const index = hookIndex;
+
+      if (stateStore[index] === undefined) {
+        boundLog("setting initial value to: " + initialValue);
+        stateStore[index] = initialValue;
+      }
+
+      const setState = (newValue) => {
+        stateStore[index] = newValue;
+        boundLog("updating value to: " + newValue);
+        controller.update();
+      };
+
+      hookIndex++;
+      return [stateStore[index], setState];
+    },
+
+    update() {
+      hookIndex = 0;
+      renderFn();
+    },
+  };
+
+  return controller;
+}
+```
+
+### Die ContactForm
+Jetzt sind wir bereit das Formular zu schreiben. Wir halten das HTML einfach, ein Formular mit ein Paar feldern und ein DIV um das DataBinding zu demonstrieren.
+
+```html
+<form>
+  <label class="name-label"
+    >Name:
+    <input type="text" value="${name}" />
+  </label>
+  <label class="email-label"
+    >Email:
+    <input type="email" value="${email}" />
+  </label>
+  <label class="msg-label"
+    >Nachricht:
+    <textarea>${message}</textarea>
+  </label>
+</form>
+
+<div>
+  You have entered:
+  <p class="name-entered"></p>
+  <p class="email-entered"></p>
+  <p class="msg-entered"></p>
+</div>
+
+```
+
+Gleiches beim CSS
+
+```css
+form {
+  max-width: 500px;
+  padding: 2rem;
+  margin: 0 auto;
+  background: var(--marina);
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+label {
+  display: block;
+  margin-bottom: 1rem;
+  font-weight: bold;
+  color: #333;
+}
+
+input,
+textarea {
+  width: 100%;
+  padding: 0.75rem;
+  margin-top: 0.25rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+input:focus,
+textarea:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+```
+
+Jetzt die `contact-form.js`
+Wie gewohnt erstellen wir ein Component. 
+
+Innerhalb der `constructor()` Funktion binden  wir die this Referenz des Loggers an die Klasse und setzen eine Interne Log Variable im Constructor .
+
+```js
+constructor() {
+  super(import.meta.url);
+  this.log = log.bind(this);
+}
+```
+
+Wir definieren die `onReady()` funktion die unser Framework automatisch aufruft sobald es den Component gebaut hat. Sie erstellt die `_controller` Variable mit Hilfe der Methode die wir in `hook.js` definiert haben. Wir übergeben den aktuellen Component und die `render()` Methode des Components. 
+Dann rufen wir die `update()` Methode des `_controller`s auf.
+Ab jetzt übernimmt dieser das Rendern der Seite.
+```js
+async onReady() {
+  this.log("ContactForm onReady called");
+  this._controller = createStateController(this, () => this.render());
+  this._controller.update();
+}
+```
+
+In der `render()` Funktion brechen wir ab wenn unsere `_controller` variable noch nicht existiert. So kann nicht gerendert werden.
+
+```js
+render() {
+  this.log(`ContactForm render called`);
+
+  // Don't render if controller isn't ready
+  if (!this._controller) {
+    this.log("Controller not ready, skipping render");
+    return;
+  }
+  
+```
+
+Danach wenden wir unseren hook aus dem Controller an. In dem wir Javascript `destructuring` verwenden. 
+
+https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Destructuring
+
+Wir holen die `useState` Funktion aus dem `_controller` Objekt und speichern diese in der `useState` Variable. 
+```js
+const { useState } = this._controller;
+```
+
+Jetzt können wir die Funktion normal verwenden. Wir nutzen noch ein Mal `destructuring` um für jedes Feld des Formulares je zwei Variablen zu definieren `[aktuellerWert, setterFunktionDesWertes]`.  
+```js
+const [name, setName] = useState("");
+const [email, setEmail] = useState("");
+const [text, setText] = useState("");
+```
+
+Diese können wir verwenden um unser HTML zu bearbeiten.
+Wir selectieren erstmal die Inputs und Lables die wir im HTML vorher definiert hatten. Dann binden wir an das `oninput` event jedes Input Elementes den entsprechenden `setter`. 
+```js
+if (!this._elements) {
+  this.log("Creating form elements");
+  this._elements = {
+    nameInput: this.shadowRoot.querySelector('input[type="text"]'),
+    emailInput: this.shadowRoot.querySelector('input[type="email"]'),
+    messageTextarea: this.shadowRoot.querySelector("textarea"),
+
+    nameLabel: this.shadowRoot.querySelector(".name-entered"),
+    emailLabel: this.shadowRoot.querySelector(".email-entered"),
+    msgLabel: this.shadowRoot.querySelector(".msg-entered"),
+  };
+
+  this._elements.nameInput.oninput = (e) => setName(e.target.value);
+  this._elements.emailInput.oninput = (e) => setEmail(e.target.value);
+  this._elements.messageTextarea.oninput = (e) => setText(e.target.value);
+}
+```
+
+Jetzt müssen wir nur noch den Wert der Input Elemente und Lables setzen.
+```js
+this._elements.nameInput.value = name;
+this._elements.emailInput.value = email;
+this._elements.messageTextarea.value = text;
+
+this._elements.nameLabel.textContent = `Name: ${
+  name || "Please enter your name"
+}`;
+this._elements.emailLabel.textContent = `Email: ${
+  email || "Please enter your email"
+}`;
+this._elements.msgLabel.textContent = `Message: ${
+  text ? `(${text.length} chars)` : "Please enter a message"
+}`;
+```
+
+Das sorgt dafür das sobald ein `oninput` Event ausgelöst wird, deer entsprechende Setter aufgerufen wird. Dieser speichert intern den aktuellen Wert und ruft die `update()` Funktion auf. Diese Funktion ruft die `render()` Funktion des Components auf. Somit wir der gesamte Component mit jeder Eingabe in das Formular neu gezeichnet.
+
+Der Code von `contact-form.js` sollte jetzt so aussehen.
+```js
+import { createStateController } from "../../services/hook.js";
+import { BaseComponent } from "../BaseComponent.js";
+import { log } from "../../services/Logger.js";
+
+export class ContactForm extends BaseComponent {
+  constructor() {
+    super(import.meta.url);
+    this.log = log.bind(this);
+  }
+
+  render() {
+    this.log(`ContactForm render called`);
+
+    // Don't render if controller isn't ready
+    if (!this._controller) {
+      this.log("Controller not ready, skipping render");
+      return;
+    }
+
+    const { useState } = this._controller;
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
+    const [text, setText] = useState("");
+
+    if (!this._elements) {
+      this.log("Creating form elements");
+      this._elements = {
+        nameInput: this.shadowRoot.querySelector('input[type="text"]'),
+        emailInput: this.shadowRoot.querySelector('input[type="email"]'),
+        messageTextarea: this.shadowRoot.querySelector("textarea"),
+
+        nameLabel: this.shadowRoot.querySelector(".name-entered"),
+        emailLabel: this.shadowRoot.querySelector(".email-entered"),
+        msgLabel: this.shadowRoot.querySelector(".msg-entered"),
+      };
+
+      this._elements.nameInput.oninput = (e) => setName(e.target.value);
+      this._elements.emailInput.oninput = (e) => setEmail(e.target.value);
+      this._elements.messageTextarea.oninput = (e) => setText(e.target.value);
+    }
+
+    this._elements.nameInput.value = name;
+    this._elements.emailInput.value = email;
+    this._elements.messageTextarea.value = text;
+
+    this._elements.nameLabel.textContent = `Name: ${
+      name || "Please enter your name"
+    }`;
+    this._elements.emailLabel.textContent = `Email: ${
+      email || "Please enter your email"
+    }`;
+    this._elements.msgLabel.textContent = `Message: ${
+      text ? `(${text.length} chars)` : "Please enter a message"
+    }`;
+  }
+
+  async onReady() {
+    this.log("ContactForm onReady called");
+    this._controller = createStateController(this, () => this.render());
+    this._controller.update();
+  }
+}
+
+customElements.define("contact-form", ContactForm);
+```
+### Navigation
+Als letztes müssen wir unsere Contact Page noch zur Navigation hinzufügen.
+
+`routes.js`
+```js
+import { HomePage } from "../components/home-page/home-page.js";
+import { AboutPage } from "../components/about-page/about-page.js";
+import { BlogPage } from "../components/blog-page/blog-page.js";
+import { AppComponent } from "../components/AppComponent.js";
+  //===> Neu
+import { ContactPage } from "../components/contact-page/contact-page.js";
+
+export const Routes = [
+  {
+    path: "/",
+    component: HomePage,
+  },
+  {
+    path: "/about",
+    component: AboutPage,
+  },
+  {
+    path: "/blog",
+    component: BlogPage,
+  },
+  //===> Neu
+  {
+    path: "/contact",
+    component: ContactPage,
+  },
+];
+
+```
+
+`index.html`
+```html
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dmitrij Patuk</title>
+    <link rel="icon" href="data:," />
+    <script src="./app.js" type="module" defer></script>
+    <link rel="stylesheet" href="./static/style.css" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <div class="wrapper">
+          <nav class="terminal-navbar">
+            <ul>
+              <li>
+                <a href="/" class="navlink"
+                  >&gt; Home<span class="cursor">|</span></a
+                >
+              </li>
+              <li><a href="/blog" class="navlink">&gt; Blog</a></li>
+              //===> Neu
+              <li><a href="/contact" class="navlink">&gt; Contact</a></li>
+              <li><a href="/about" class="navlink">&gt; About</a></li>
+            </ul>
+          </nav>
+        </div>
+      </header>
+      <body>
+        <app-component> </app-component>
+      </body>
+    </main>
+  </body>
+</html>
+```
+Starte den Server neu und navigiere zur Contact Page, die sollte jetzt gerendert werden und Änderungen am Formular sollten in den darunter liegenden Labels automatisch angezeigt werden.
+
+## Teil 10 Client Side Validierung 
+
+
+
+## Teil 11 Persistieren der Formulardaten
+
