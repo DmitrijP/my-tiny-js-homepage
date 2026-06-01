@@ -52,6 +52,13 @@ Ziel davon ist es zu verstehen wie Angular, Vue, React... Frameworks funktionier
   - [Teil 10 Client Side Validierung](#teil-10-client-side-validierung)
   - [Teil 11 Persistieren der Formulardaten](#teil-11-persistieren-der-formulardaten)
 
+## Teil 0 Voraussetzungen
+Du benötigst [Javascript Kentnisse](https://github.com/DmitrijP/YouTubeTutorials/blob/master/JavaScript/readme.md) in:
+- Grundlagen
+- Funktionen
+- Closures
+Weiterhin sind Grundlagen in HTML hilfreich.
+Optional solltest du Vue, React oder ähnliche JS Frameworks schon mal benutzt haben. 
 
 ## Teil 1 Einstieg
 ### Verzeichnisstruktur
